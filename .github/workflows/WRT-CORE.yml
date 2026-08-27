@@ -283,8 +283,19 @@ jobs:
 
           ARCHIVE="OWRT-$WRT_CONFIG-$WRT_INFO-$WRT_BRANCH-$WRT_DATE.7z"
 
+          #参考 Router-Actions-Build：只归档 squashfs 刷机包与配置文件，其余中间产物丢弃
+          #注意 *squashfs* 同时匹配 sysupgrade 与 factory，两种刷机包都会保留
+          shopt -s nullglob
+          ARCHIVE_FILES=(./*squashfs* ./Config-*.txt)
+          shopt -u nullglob
+
+          if [ "${#ARCHIVE_FILES[@]}" -eq 0 ]; then
+            echo "::error::No squashfs image or config file found in upload dir."
+            exit 1
+          fi
+
           #-mhe=on 连同文件名一起加密，否则文件列表仍可被公开查看
-          7z a -t7z -p"$RELEASE_PASSWD" -mhe=on -mx=9 -mmt=on -aoa "/tmp/$ARCHIVE" ./*
+          7z a -t7z -p"$RELEASE_PASSWD" -mhe=on -mx=9 -mmt=on -aoa "/tmp/$ARCHIVE" "${ARCHIVE_FILES[@]}"
 
           #删除明文产物，Release 只上传加密包
           rm -rf ./*
@@ -294,7 +305,41 @@ jobs:
 
           ls -lh ./
 
+      - name: Upload Artifact
+        if: env.WRT_ENCRYPTED == 'true'
+        uses: actions/upload-artifact@main
+        with:
+          name: ${{env.WRT_CONFIG}}-${{env.WRT_INFO}}-${{env.WRT_BRANCH}}-${{env.WRT_DATE}}
+          path: ./wrt/upload/*.7z
+          if-no-files-found: error
+          #加密包已是压缩格式，再压一遍纯浪费时间
+          compression-level: 0
+          #仅作为 Release 失败时的兜底，占用账户存储配额，尽早过期
+          retention-days: 1
+
       - name: Release Firmware
+        id: release
+        continue-on-error: true
+        uses: softprops/action-gh-release@master
+        with:
+          tag_name: ${{env.WRT_CONFIG}}-${{env.WRT_INFO}}-${{env.WRT_BRANCH}}-${{env.WRT_DATE}}
+          files: ./wrt/upload/*
+          body: |
+            ${{env.WRT_ENCRYPTED == 'true' && '固件已加密打包，解压需要密码。' || '这是个平台固件包，内含多个设备，请注意选择你需要的设备固件！'}}
+
+            源码：${{env.WRT_REPO}}
+            分支：${{env.WRT_BRANCH}}
+            提交：${{env.WRT_HASH}}
+
+            配置：${{env.WRT_CONFIG}}
+            平台：${{env.WRT_TARGET}}
+
+            登录地址：${{env.WRT_IP}}
+            内核版本：${{env.WRT_KVER}}
+
+      #GitHub API 偶发 5xx（Unicorn 错误页）会让上一步在附件已上传后仍然失败，重试一次
+      - name: Retry Release Firmware
+        if: steps.release.outcome == 'failure'
         uses: softprops/action-gh-release@master
         with:
           tag_name: ${{env.WRT_CONFIG}}-${{env.WRT_INFO}}-${{env.WRT_BRANCH}}-${{env.WRT_DATE}}
