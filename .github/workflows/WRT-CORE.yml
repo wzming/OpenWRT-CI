@@ -262,17 +262,45 @@ jobs:
             make clean -j$(nproc)
           fi
 
+      - name: Encrypt Firmware
+        env:
+          RELEASE_PASSWD: ${{secrets.RELEASE_PASSWD}}
+        run: |
+          cd ./wrt/upload/
+
+          if [ -z "$RELEASE_PASSWD" ]; then
+            #含私有配置却没有密码时才失败，避免把私有配置明文发布到公开 Release
+            if [ "$WRT_PRIVATE" == 'true' ]; then
+              echo "::error::Firmware contains private config but RELEASE_PASSWD is not set, refusing to publish plaintext."
+              exit 1
+            fi
+            echo "no private config and no password, publishing as-is."
+            echo "WRT_ENCRYPTED=false" >> $GITHUB_ENV
+            exit 0
+          fi
+
+          command -v 7z >/dev/null 2>&1 || sudo -E apt -yqq install p7zip-full
+
+          ARCHIVE="OWRT-$WRT_CONFIG-$WRT_INFO-$WRT_BRANCH-$WRT_DATE.7z"
+
+          #-mhe=on 连同文件名一起加密，否则文件列表仍可被公开查看
+          7z a -t7z -p"$RELEASE_PASSWD" -mhe=on -mx=9 -mmt=on -aoa "/tmp/$ARCHIVE" ./*
+
+          #删除明文产物，Release 只上传加密包
+          rm -rf ./*
+          mv -f "/tmp/$ARCHIVE" ./
+
+          echo "WRT_ENCRYPTED=true" >> $GITHUB_ENV
+
+          ls -lh ./
+
       - name: Release Firmware
         uses: softprops/action-gh-release@master
         with:
           tag_name: ${{env.WRT_CONFIG}}-${{env.WRT_INFO}}-${{env.WRT_BRANCH}}-${{env.WRT_DATE}}
-          files: ./wrt/upload/*.*
+          files: ./wrt/upload/*
           body: |
-            这是个平台固件包，内含多个设备！
-            请注意选择你需要的设备固件！
-            不要问，刷就完事了！
-
-            全系带开源硬件加速，别问了！
+            ${{env.WRT_ENCRYPTED == 'true' && '固件已加密打包，解压需要密码。' || '这是个平台固件包，内含多个设备，请注意选择你需要的设备固件！'}}
 
             源码：${{env.WRT_REPO}}
             分支：${{env.WRT_BRANCH}}
@@ -282,13 +310,7 @@ jobs:
             平台：${{env.WRT_TARGET}}
 
             登录地址：${{env.WRT_IP}}
-            登录密码：${{env.WRT_PW}}
-
-            WIFI名称：${{env.WRT_SSID}}
-            WIFI密码：${{env.WRT_WORD}}
-
             内核版本：${{env.WRT_KVER}}
-            插件列表：${{env.WRT_LIST}}
 
   cache-rollover:
     name: Roll cache generations

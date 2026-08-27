@@ -107,8 +107,10 @@ mkdir -p "$FILES_DIR"
 
 if [ -n "$(ls -A "$PRIVATE_DIR" 2>/dev/null)" ]; then
 	cp -rf "$PRIVATE_DIR"/. "$FILES_DIR"/
-	echo "Applied private rootfs overlay:"
-	find "$FILES_DIR" -type f | sed 's|^\.\./|  |'
+	#仅输出文件数量：公开仓库的 Actions 日志任何人可见，路径本身也算泄露
+	echo "Applied private rootfs overlay: $(find "$PRIVATE_DIR" -type f | wc -l) file(s)"
+	#标记本次固件含私有配置，供 Encrypt Firmware 步骤判断是否必须加密
+	[ -n "$GITHUB_ENV" ] && echo "WRT_PRIVATE=true" >> "$GITHUB_ENV"
 else
 	echo "Private config repo is empty, nothing to apply."
 fi
