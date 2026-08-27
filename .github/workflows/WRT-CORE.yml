@@ -47,6 +47,9 @@ on:
 
 env:
   GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
+  #私有配置仓库，格式 owner/repo，分支名需与 WRT_CONFIG 一致；未配置时自动跳过
+  PRIVATE_REPO: ${{secrets.PRIVATE_REPO}}
+  PRIVATE_TOKEN: ${{secrets.PRIVATE_TOKEN}}
   WRT_CONFIG: ${{inputs.WRT_CONFIG}}
   WRT_THEME: ${{inputs.WRT_THEME}}
   WRT_NAME: ${{inputs.WRT_NAME}}
