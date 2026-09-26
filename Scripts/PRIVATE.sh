@@ -3,14 +3,14 @@
 
 #私有扩展脚本：由 Scripts/Packages.sh 末尾 source 引入
 #运行时机：feeds 安装完成之后，.config 拼装与 make defconfig 之前
-#运行目录：./wrt/package/  （因此固件根目录为 ../ ，files 覆盖目录为 ../files）
+#运行目录：./wrt/  （因此固件根目录即当前目录，files 覆盖目录为 ./files）
 #注意：本文件是被 source 的，提前退出必须用 return，不能用 exit（否则会终止 Packages.sh）
 
 #预置 mihomo geo 数据，避免首次开机联网下载
 #目标目录即 nikki.init 传给 mihomo 的 -d 工作目录：/etc/nikki/run
 #geosite.dat 总是使用；geoip.metadb 用于默认 mmdb 模式，geoip.dat 用于 geodata-mode=dat
 #两种模式的文件都预置，切换 GeoIP 格式时无需重新联网下载
-GEO_DIR="../files/etc/nikki/run"
+GEO_DIR="./files/etc/nikki/run"
 GEO_BASE="https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest"
 
 mkdir -p "$GEO_DIR"
@@ -34,7 +34,7 @@ echo " "
 #内核路径见 openclash init 的 do_run_file()：非小闪存机型为 /etc/openclash/core/clash_meta
 #tar 包内二进制名为 clash，需重命名并置 4755（openclash_core.sh 运行时也是这么做的）
 #geo 数据源与 nikki 不同，取自 openclash_geo.sh 中的默认地址
-OC_DIR="../files/etc/openclash"
+OC_DIR="./files/etc/openclash"
 OC_CORE_BASE="https://raw.githubusercontent.com/vernesong/OpenClash/core/master/meta"
 
 #架构映射对照 openclash uci-defaults 的 DISTRIB_ARCH 分支
@@ -102,7 +102,7 @@ fi
 rm -rf "$PRIVATE_DIR/.git"
 
 #将私有仓库内容覆盖进 files/ ，编译时会烤进固件 rootfs
-FILES_DIR="../files"
+FILES_DIR="./files"
 mkdir -p "$FILES_DIR"
 
 if [ -n "$(ls -A "$PRIVATE_DIR" 2>/dev/null)" ]; then
