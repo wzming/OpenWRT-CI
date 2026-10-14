@@ -4,9 +4,9 @@
 name: Auto-Clean
 
 on:
-  #自动清理：每天早上5点
+  #UTC时间，比北京时间慢8个小时
   schedule:
-    - cron: 21 21 * * *
+    - cron: '0 16 * * *'  # 16+8=24，相当于北京时间24点
   #手动清理
   workflow_dispatch:
 
