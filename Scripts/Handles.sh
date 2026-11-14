@@ -33,6 +33,7 @@ FIX "theme-aurora" "$PACKAGE_PATH/luci-app-aurora-config" find \
 	"s/nav_type '.*'/nav_type 'dropdown'/g; s/struct_radius_base '.*'/struct_radius_base '0.125rem'/g" {} +
 
 #修复vantage表单说明宽度和进度条标签字体（anothaDev/luci-theme-vantage#51、#52）
+#已包含上游 #52 的进度条字体修正，合并上游时保留本地组合版本
 FIX "theme-vantage" "$PACKAGE_PATH/luci-theme-vantage" sed -i \
 	-e '/^\.cbi-map-descr {/,/^}/ { /max-width: 76ch;/d; }' \
 	-e 's/^\(\.cbi-section-descr { \)max-width: 80ch; /\1/' \
