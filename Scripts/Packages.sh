@@ -136,6 +136,16 @@ UPDATE_VERSION() {
 #UPDATE_VERSION "软件包名" "测试版，true，可选，默认为否"
 #UPDATE_VERSION "sing-box"
 
+#补齐 libffi：上游 VIKINGYFY/immortalwrt 已不带该包，但 glib2/avahi/python/uwsgi 等仍依赖它
+#缺少时 glib2 会在 meson 配置阶段直接失败，导致整个 world 编译中断
+PACKAGE_SCRIPT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
+LIBFFI_SRC="${GITHUB_WORKSPACE:-$(dirname "$PACKAGE_SCRIPT_DIR")}/Package/libffi"
+if [ ! -d ./package/libs/libffi ] && [ -d "$LIBFFI_SRC" ]; then
+	echo "Installing bundled libffi package..."
+	mkdir -p ./package/libs
+	cp -rf "$LIBFFI_SRC" ./package/libs/
+fi
+
 #引入私有扩展脚本
 if [ -f "$GITHUB_WORKSPACE/Scripts/PRIVATE.sh" ]; then
 	source "$GITHUB_WORKSPACE/Scripts/PRIVATE.sh"
